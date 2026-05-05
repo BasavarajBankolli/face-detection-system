@@ -1,4 +1,10 @@
 __pycache__/
 *.pyc
-.env
+*.pyo
 venv/
+.venv/
+
+.env
+
+postgres_data/
+

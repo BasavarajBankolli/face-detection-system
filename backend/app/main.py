@@ -1,10 +1,20 @@
 from fastapi import FastAPI
-from app.health import router as health_router
+from app.core.config import get_settings
+from app.api.routes import router as api_router
 
-app = FastAPI()
+settings = get_settings()
 
-app.include_router(health_router)
+app = FastAPI(
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
+    description="Real-time face detection over WebSocket streams.",
+)
 
-@app.get("/")
+app.include_router(api_router)
+
+
+@app.get("/", tags=["root"])
 async def root():
-    return {"message": "Face Detection API is running. Visit /health for status."}
+    return {
+        "message": "Face Detection API is running. Visit /health for status."
+    }
