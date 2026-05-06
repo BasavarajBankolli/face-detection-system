@@ -1,7 +1,5 @@
 import numpy as np
 from PIL import Image
-
-# import ONLY face_detection — avoids mediapipe pulling in cv2 drawing utils
 import mediapipe as mp
 
 mp_face_detection = mp.solutions.face_detection
@@ -9,40 +7,55 @@ detector = mp_face_detection.FaceDetection(
     model_selection=0,
     min_detection_confidence=0.5
 )
-
+MAX_WIDTH = 640  # for stability
 
 def detect_face(pil_image: Image.Image) -> dict | None:
     """
-    Takes a PIL Image, runs MediaPipe face detection.
-    Returns bounding box dict or None if no face found.
-    No OpenCV used — PIL + numpy only.
+    Detect face with resizing for stability.
+    Returns ROI in ORIGINAL image scale.
     """
-    img_w, img_h = pil_image.size
 
-    # PIL → numpy RGB array
+    original_w, original_h = pil_image.size
+    scale = 1.0
+
+    if original_w > MAX_WIDTH:
+        scale = MAX_WIDTH / original_w
+        resized_w = MAX_WIDTH
+        resized_h = int(original_h * scale)
+        pil_image = pil_image.resize((resized_w, resized_h))
+    else:
+        resized_w, resized_h = original_w, original_h
     rgb_array = np.array(pil_image.convert("RGB"), dtype=np.uint8)
-
     results = detector.process(rgb_array)
 
     if not results.detections:
         return None
 
-    # pick first detection (problem says only one face)
     detection = results.detections[0]
-    confidence = detection.score[0]
-
-    # MediaPipe returns relative coords (0.0 → 1.0), also convert to actual pixel vals
+    confidence = float(detection.score[0])
     bbox = detection.location_data.relative_bounding_box
+  
+    x = int(bbox.xmin * resized_w)
+    y = int(bbox.ymin * resized_h)
+    width = int(bbox.width * resized_w)
+    height = int(bbox.height * resized_h)
 
-    x = max(0, int(bbox.xmin * img_w))
-    y = max(0, int(bbox.ymin * img_h))
-    width = min(img_w - x, int(bbox.width * img_w))
-    height = min(img_h - y, int(bbox.height * img_h))
+    x = max(0, min(x, resized_w - 1))
+    y = max(0, min(y, resized_h - 1))
+    width = max(1, min(width, resized_w - x))
+    height = max(1, min(height, resized_h - y))
+
+    if scale != 1.0:
+        inv = 1 / scale
+        x = int(x * inv)
+        y = int(y * inv)
+        width = int(width * inv)
+        height = int(height * inv)
 
     return {
         "x": x,
         "y": y,
         "width": width,
         "height": height,
-        "confidence": round(float(confidence), 4)
+        "confidence": round(confidence, 4)
     }
