@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Face Detection Stream</title>
+</head>
+<body>
+    <h2>Real-Time Face Detection</h2>
+
+    <video id="video" autoplay playsinline width="640"></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <img id="output" width="640"/>
+
+    <script>
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("canvas");
+        const output = document.getElementById("output");
+
+        const ctx = canvas.getContext("2d");
+
+        // connect websocket
+        const ws = new WebSocket("ws://localhost:8000/ws/video");
+
+        ws.onopen = () => {
+            console.log("WebSocket connected");
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            console.log("Response:", data);
+
+            if (data.frame) {
+                output.src = "data:image/jpeg;base64," + data.frame;
+            }
+        };
+
+        ws.onerror = (err) => {
+            console.error("WS Error:", err);
+        };
+
+        ws.onclose = () => {
+            console.log("WebSocket closed");
+        };
+
+        // access webcam
+        navigator.mediaDevices.getUserMedia({
+            video: true
+        })
+        .then((stream) => {
+            video.srcObject = stream;
+
+            // send frames repeatedly
+            setInterval(() => {
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+
+                ctx.drawImage(video, 0, 0);
+
+                const base64Frame = canvas
+                    .toDataURL("image/jpeg")
+                    .split(",")[1];
+
+                ws.send(JSON.stringify({
+                    frame: base64Frame
+                }));
+
+            }, 500); // every 500ms
+
+        })
+        .catch((err) => {
+            console.error("Camera error:", err);
+        });
+    </script>
+</body>
+</html>
