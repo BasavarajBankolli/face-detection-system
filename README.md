@@ -176,8 +176,28 @@ project/
 
 ```bash
 git clone https://github.com/BasavarajBankolli/face-detection-system.git
+```
+```
 cd face-detection-system
 ```
+
+### Environment Variables
+
+Create a `.env` file from `.env.example`.
+
+Linux / Mac
+
+```bash
+cp .env.example .env
+```
+
+Windows PowerShell
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Then update values inside `.env` if needed.
 
 ---
 
