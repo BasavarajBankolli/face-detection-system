@@ -1,77 +1,72 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Face Detection Stream</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Real-Time Face Detection</title>
+
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <h2>Real-Time Face Detection</h2>
 
-    <video id="video" autoplay playsinline width="640"></video>
-    <canvas id="canvas" style="display:none;"></canvas>
+    <div class="container">
 
-    <img id="output" width="640"/>
+        <div class="header">
+            <h1>Real-Time Face Detection</h1>
+            <div class="controls">
+    <button id="start-btn">Start Camera</button>
+    <button id="stop-btn">Stop Camera</button>
+</div>
 
-    <script>
-        const video = document.getElementById("video");
-        const canvas = document.getElementById("canvas");
-        const output = document.getElementById("output");
+            <div class="status-bar">
+                <span id="ws-status" class="badge disconnected">
+                    Disconnected
+                </span>
 
-        const ctx = canvas.getContext("2d");
+                <span id="face-status" class="badge noface">
+                    No Face
+                </span>
+            </div>
+        </div>
 
-        // connect websocket
-        const ws = new WebSocket("ws://localhost:8000/ws/video");
+        <div class="video-section">
 
-        ws.onopen = () => {
-            console.log("WebSocket connected");
-        };
+            <video
+                id="video"
+                autoplay
+                playsinline
+                muted
+            ></video>
 
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
+            <img id="output" alt="Processed Stream" />
 
-            console.log("Response:", data);
+            <canvas id="canvas"></canvas>
 
-            if (data.frame) {
-                output.src = "data:image/jpeg;base64," + data.frame;
-            }
-        };
+        </div>
 
-        ws.onerror = (err) => {
-            console.error("WS Error:", err);
-        };
+        <div class="info-panel">
 
-        ws.onclose = () => {
-            console.log("WebSocket closed");
-        };
+            <div class="card">
+                <h3>Detection Info</h3>
 
-        // access webcam
-        navigator.mediaDevices.getUserMedia({
-            video: true
-        })
-        .then((stream) => {
-            video.srcObject = stream;
+                <p><strong>Confidence:</strong> <span id="confidence">0</span></p>
+                <p><strong>Frame:</strong> <span id="frame-number">0</span></p>
+            </div>
 
-            // send frames repeatedly
-            setInterval(() => {
+            <div class="card">
+                <h3>ROI Coordinates</h3>
 
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
+                <p>X: <span id="roi-x">0</span></p>
+                <p>Y: <span id="roi-y">0</span></p>
+                <p>Width: <span id="roi-width">0</span></p>
+                <p>Height: <span id="roi-height">0</span></p>
+            </div>
 
-                ctx.drawImage(video, 0, 0);
+        </div>
 
-                const base64Frame = canvas
-                    .toDataURL("image/jpeg")
-                    .split(",")[1];
+    </div>
 
-                ws.send(JSON.stringify({
-                    frame: base64Frame
-                }));
+    <script src="app.js"></script>
 
-            }, 500); // every 500ms
-
-        })
-        .catch((err) => {
-            console.error("Camera error:", err);
-        });
-    </script>
 </body>
 </html>
